@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PUBG Scoreboard Overlay</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Inter:wght@400;600;700;800&display=swap');
+
+    :root {
+      --bg-overlay: rgba(8, 10, 15, 0.68);
+      --border-overlay: rgba(255, 255, 255, 0.08);
+      --text: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.6);
+      
+      /* Colors */
+      --accent: #8b5cf6;
+      --accent-cyan: #00d5ff;
+      --gold: #ffd700;
+      --silver: #e0e0e0;
+      --bronze: #cd7f32;
+      --shadow: rgba(0, 0, 0, 0.6);
+      
+      /* Editor Colors */
+      --editor-bg: #11131e;
+      --editor-border: rgba(255, 255, 255, 0.1);
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent; /* Essential for OBS transparency */
+      overflow: hidden;
+      font-family: 'Outfit', Arial, sans-serif;
+      color: var(--text);
+    }
+
+    body {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 30px;
+      position: relative;
+    }
+
+    /* -------------------------------------------------------------
+       VIEW MODE: Leaderboard View
+       ------------------------------------------------------------- */
+    .scoreboard-container {
+      background: var(--bg-overlay);
+      border: 1px solid var(--border-overlay);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 16px 50px var(--shadow);
+      backdrop-filter: blur(14px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: all 0.3s ease;
+      position: relative;
+      width: auto;
+    }
+
+    /* Gradient border top reflection */
+    .scoreboard-container::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(0, 213, 255, 0.2), transparent 70%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 12px;
+      margin-bottom: 4px;
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      background: linear-gradient(90deg, #fff, var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-info {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: rgba(0, 213, 255, 0.1);
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 213, 255, 0.15);
+      margin-right: 36px; /* Space to not overlap the edit button */
+    }
+
+    /* Grid Layout */
+    .leaderboard-grid {
+      display: grid;
+      gap: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .leaderboard-grid.single-column {
+      grid-template-columns: 1fr;
+      width: 440px;
+    }
+
+    .leaderboard-grid.double-column {
+      grid-template-columns: repeat(2, 440px);
+      gap: 12px 24px;
+    }
+
+    /* Team Row Card */
+    .team-card {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      padding: 8px 14px;
+      gap: 12px;
+      transition: all 0.5s ease;
+      position: relative;
+    }
+
+    .team-card.rank-1 {
+      background: rgba(255, 215, 0, 0.06);
+      border-color: rgba(255, 215, 0, 0.18);
+    }
+    .team-card.rank-2 {
+      background: rgba(224, 224, 224, 0.04);
+      border-color: rgba(224, 224, 224, 0.14);
+    }
+    .team-card.rank-3 {
+      background: rgba(205, 127, 50, 0.04);
+      border-color: rgba(205, 127, 50, 0.14);
+    }
+
+    /* Badge Style for Position */
+    .rank-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .rank-1 .rank-badge {
+      background: var(--gold);
+      color: #000;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+    }
+    .rank-2 .rank-badge {
+      background: var(--silver);
+      color: #000;
+      box-shadow: 0 0 8px rgba(224, 224, 224, 0.3);
+    }
+    .rank-3 .rank-badge {
+      background: var(--bronze);
+      color: #000;
+      box-shadow: 0 0 8px rgba(205, 127, 50, 0.3);
+    }
+
+    .team-name {
+      font-size: 15px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-grow: 1;
+    }
+
+    .rank-1 .team-name {
+      color: #fff;
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.25);
+    }
+
+    /* Round Scores Display */
+    .round-scores {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .round-dot {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      width: 24px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+    }
+
+    .total-badge {
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--accent-cyan);
+      min-width: 32px;
+      text-align: right;
+      text-shadow: 0 0 10px rgba(0, 213, 255, 0.2);
+    }
+
+    .rank-1 .total-badge {
+      color: var(--gold);
+      text-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+    }
+
+    /* Score Flash Animation when points change */
+    .flash-update {
+      animation: flashPulse 1.2s ease-out;
+    }
+
+    @keyframes flashPulse {
+      0% {
+        background: rgba(16, 185, 129, 0.25);
+        border-color: rgba(16, 185, 129, 0.6);
+        transform: scale(1.02);
+      }
+      100% {
+        background: rgba(255, 255, 255, 0.035);
+        border-color: rgba(255, 255, 255, 0.04);
+        transform: scale(1);
+      }
+    }
+
+    .placeholder-msg {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.6;
+    }
+
+    /* -------------------------------------------------------------
+       EDIT TRIGGER: Zahnrad (Invisible on Stream, Hover to Reveal)
+       ------------------------------------------------------------- */
+    .edit-trigger {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      opacity: 0; /* INVISIBLE BY DEFAULT FOR STREAM */
+      transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+      z-index: 100;
+    }
+
+    /* Hovering over container reveals the button */
+    .scoreboard-container:hover .edit-trigger,
+    .edit-trigger:hover {
+      opacity: 1; /* Shows up on mouse hover */
+    }
+
+    .edit-trigger:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: var(--accent-cyan);
+      transform: rotate(45deg);
+    }
+
+    /* -------------------------------------------------------------
+       EDIT MODE: Admin Dashboard Panel
+       ------------------------------------------------------------- */
+    .editor-container {
+      background: var(--editor-bg);
+      border: 1px solid var(--editor-border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+      width: 820px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      animation: editorFadeIn 0.2s ease-out;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    @keyframes editorFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 14px;
+    }
+
+    .editor-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .editor-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-save {
+      background: linear-gradient(90deg, var(--accent), var(--accent-cyan));
+      border: none;
+      color: #000;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+    }
+
+    .btn-save:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-download {
+      background: rgba(0, 213, 255, 0.12);
+      border-color: rgba(0, 213, 255, 0.25);
+      color: var(--accent-cyan);
+    }
+
+    .btn-download:hover {
+      background: var(--accent-cyan);
+      color: #000;
+      box-shadow: 0 4px 12px rgba(0, 213, 255, 0.35);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.25);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .editor-table-wrap {
+      max-height: 380px;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    /* Scrollbar Styling */
+    .editor-table-wrap::-webkit-scrollbar {
+      width: 6px;
+    }
+    .editor-table-wrap::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 6px;
+    }
+    .editor-table-wrap::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+    }
+    .editor-table-wrap::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.02);
+      padding: 12px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    td {
+      padding: 6px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .team-num {
+      font-weight: 700;
+      color: var(--text-muted);
+      text-align: center;
+      width: 40px;
+    }
+
+    .input-text {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      width: 100%;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .input-text:focus {
+      border-color: var(--accent);
+      background: rgba(139, 92, 246, 0.05);
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.25);
+    }
+
+    .input-num {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      padding: 6px;
+      border-radius: 6px;
+      width: 60px;
+      font-family: inherit;
+      font-size: 13px;
+      text-align: center;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .input-num:focus {
+      border-color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.05);
+      box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+    }
+
+    .total-score-preview {
+      font-weight: 800;
+      color: var(--accent-cyan);
+      font-size: 15px;
+      text-align: center;
+      display: block;
+    }
+
+    tr:focus-within {
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .editor-footer {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- VIEW MODE: Das Leaderboard Overlay -->
+  <div class="scoreboard-container" id="viewMode">
+    <button class="edit-trigger" id="btnGoToEdit" title="Scoreboard bearbeiten">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+    
+    <div class="header">
+      <span class="header-title">Leaderboard</span>
+      <span class="header-info">3 Runden</span>
+    </div>
+    
+    <div class="leaderboard-grid single-column" id="leaderboardGrid">
+      <!-- Wird dynamisch befüllt -->
+    </div>
+  </div>
+
+  <!-- EDIT MODE: Das Bearbeitungsfenster (Standardmäßig ausgeblendet) -->
+  <div class="editor-container" id="editMode" style="display: none;">
+    <div class="editor-header">
+      <span class="editor-title">Scoreboard bearbeiten</span>
+      <div class="editor-actions">
+        <button id="btnReset" class="btn btn-danger">🔄 Reset</button>
+        <button id="btnDownload" class="btn btn-download" title="Lade die scoreboard.json herunter, um sie auf GitHub hochzuladen">📥 JSON herunterladen</button>
+        <button id="btnCancel" class="btn">Abbrechen</button>
+        <button id="btnSave" class="btn btn-save">💾 Speichern</button>
+      </div>
+    </div>
+
+    <div class="editor-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="team-num">#</th>
+            <th>Teamname</th>
+            <th style="width: 80px; text-align: center;">Runde 1</th>
+            <th style="width: 80px; text-align: center;">Runde 2</th>
+            <th style="width: 80px; text-align: center;">Runde 3</th>
+            <th style="width: 80px; text-align: center;">Gesamt</th>
+          </tr>
+        </thead>
+        <tbody id="editorBody">
+          <!-- Wird dynamisch mit 20 Zeilen befüllt -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="editor-footer">
+      <span>Tipp: Benutze <strong>Tab</strong> oder die <strong>Pfeiltasten</strong> zur Navigation.</span>
+      <span>Klicke auf <strong>JSON herunterladen</strong>, um die Datei für GitHub zu exportieren.</span>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'pubgScoreboardData';
+    const NUM_TEAMS = 20;
+
+    let scoreboardData = [];
+    let previousScores = {}; // Verhindert Flash bei Erstladung
+
+    // URL Parameter prüfen
+    const urlParams = new URLSearchParams(window.location.search);
+    // Admin-Modus ist aktiv, wenn lokal geladen (file://) ODER wenn ?admin=1 in der URL steht
+    const isAdminMode = window.location.protocol === 'file:' || urlParams.has('admin') || urlParams.has('edit');
+
+    // Falls nicht Admin-Modus: Zahnrad komplett entfernen
+    if (!isAdminMode) {
+      const gear = document.getElementById('btnGoToEdit');
+      if (gear) gear.remove();
+    }
+
+    // Standard-Leere Daten erstellen
+    function createEmptyData() {
+      const data = [];
+      for (let i = 1; i <= NUM_TEAMS; i++) {
+        data.push({
+          id: i,
+          name: '',
+          r1: '',
+          r2: '',
+          r3: '',
+          total: 0
+        });
+      }
+      return data;
+    }
+
+    // Daten laden (zuerst scoreboard.json, dann localStorage Fallback)
+    async function loadData() {
+      try {
+        // Fetch mit Cache-Buster, um Cache-Probleme zu verhindern
+        const response = await fetch('./scoreboard.json?t=' + Date.now());
+        if (response.ok) {
+          const parsed = await response.json();
+          if (Array.isArray(parsed) && parsed.length === NUM_TEAMS) {
+            scoreboardData = parsed;
+            renderOverlay();
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Konnte scoreboard.json nicht abfragen. Weiche auf localStorage aus:", e);
+      }
+
+      // LocalStorage Fallback
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length === NUM_TEAMS) {
+            scoreboardData = parsed;
+            renderOverlay();
+            return;
+          }
+        } catch (e) {
+          console.error("Fehler beim Laden aus localStorage", e);
+        }
+      }
+
+      if (scoreboardData.length === 0) {
+        scoreboardData = createEmptyData();
+      }
+      renderOverlay();
+    }
+
+    // Leaderboard-Ansicht (View Mode) rendern
+    function renderOverlay() {
+      const grid = document.getElementById('leaderboardGrid');
+      
+      // Nur Teams anzeigen, die einen Namen eingetragen haben
+      const activeTeams = scoreboardData.filter(team => team.name && team.name.trim() !== '');
+
+      if (activeTeams.length === 0) {
+        grid.className = 'leaderboard-grid single-column';
+        if (isAdminMode) {
+          grid.innerHTML = `
+            <div class="placeholder-msg">
+              Wartend auf Scoreboard-Daten...<br>
+              <span style="font-size: 11px; color: var(--accent-cyan); font-weight: normal; margin-top: 8px; display: block;">
+                Rechtsklick in OBS -> <strong>Interagieren</strong><br>
+                Zahnrad oben rechts anklicken zum Bearbeiten.
+              </span>
+            </div>
+          `;
+        } else {
+          grid.innerHTML = `
+            <div class="placeholder-msg">
+              Wartend auf Scoreboard-Daten vom Administrator...
+            </div>
+          `;
+        }
+        return;
+      }
+
+      // Sortieren: Meiste Gesamtpunkte zuerst.
+      // Tie-Breaker: R3, dann R2, dann R1, dann Alphabetisch
+      activeTeams.sort((a, b) => {
+        if (b.total !== a.total) {
+          return b.total - a.total;
+        }
+        const r3Diff = (b.r3 || 0) - (a.r3 || 0);
+        if (r3Diff !== 0) return r3Diff;
+        const r2Diff = (b.r2 || 0) - (a.r2 || 0);
+        if (r2Diff !== 0) return r2Diff;
+        const r1Diff = (b.r1 || 0) - (a.r1 || 0);
+        if (r1Diff !== 0) return r1Diff;
+        return a.name.localeCompare(b.name);
+      });
+
+      // Layout umschalten: Mehr als 10 Teams -> zweispaltig
+      if (activeTeams.length > 10) {
+        grid.className = 'leaderboard-grid double-column';
+      } else {
+        grid.className = 'leaderboard-grid single-column';
+      }
+
+      grid.innerHTML = '';
+      activeTeams.forEach((team, index) => {
+        const rank = index + 1;
+        const card = document.createElement('div');
+        
+        let rankClass = '';
+        if (rank === 1) rankClass = 'rank-1';
+        else if (rank === 2) rankClass = 'rank-2';
+        else if (rank === 3) rankClass = 'rank-3';
+
+        card.className = `team-card ${rankClass}`;
+        card.id = `card-team-${team.id}`;
+        
+        card.innerHTML = `
+          <div class="rank-badge">${rank}</div>
+          <div class="team-name">${escapeHtml(team.name)}</div>
+          <div class="round-scores">
+            <div class="round-dot" title="Runde 1">${team.r1 !== '' ? team.r1 : '-'}</div>
+            <div class="round-dot" title="Runde 2">${team.r2 !== '' ? team.r2 : '-'}</div>
+            <div class="round-dot" title="Runde 3">${team.r3 !== '' ? team.r3 : '-'}</div>
+          </div>
+          <div class="total-badge">${team.total}</div>
+        `;
+
+        // Flash-Glow-Effekt bei Punkteänderung
+        const prevTotal = previousScores[team.id];
+        if (prevTotal !== undefined && prevTotal !== team.total) {
+          card.classList.add('flash-update');
+        }
+
+        grid.appendChild(card);
+        previousScores[team.id] = team.total;
+      });
+    }
+
+    // Auslese-Hilfsfunktion für Formulareingaben
+    function getEditorData() {
+      const data = [];
+      for (let i = 0; i < NUM_TEAMS; i++) {
+        const nameVal = document.getElementById(`edit-name-${i}`).value.trim();
+        const r1Raw = document.getElementById(`edit-r1-${i}`).value;
+        const r2Raw = document.getElementById(`edit-r2-${i}`).value;
+        const r3Raw = document.getElementById(`edit-r3-${i}`).value;
+
+        const r1Val = r1Raw === '' ? '' : parseInt(r1Raw, 10);
+        const r2Val = r2Raw === '' ? '' : parseInt(r2Raw, 10);
+        const r3Val = r3Raw === '' ? '' : parseInt(r3Raw, 10);
+
+        const r1Num = typeof r1Val === 'number' ? r1Val : 0;
+        const r2Num = typeof r2Val === 'number' ? r2Val : 0;
+        const r3Num = typeof r3Val === 'number' ? r3Val : 0;
+
+        data.push({
+          id: i + 1,
+          name: nameVal,
+          r1: isNaN(r1Val) ? '' : r1Val,
+          r2: isNaN(r2Val) ? '' : r2Val,
+          r3: isNaN(r3Val) ? '' : r3Val,
+          total: r1Num + r2Num + r3Num
+        });
+      }
+      return data;
+    }
+
+    // Editor-Eingabetabelle rendern
+    function renderEditor() {
+      const tbody = document.getElementById('editorBody');
+      tbody.innerHTML = '';
+
+      scoreboardData.forEach((team, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="team-num">${team.id}</td>
+          <td>
+            <input type="text" 
+                   id="edit-name-${index}" 
+                   class="input-text" 
+                   value="${escapeHtml(team.name)}" 
+                   placeholder="Team ${team.id} Name..."
+                   autocomplete="off" />
+          </td>
+          <td>
+            <input type="number" 
+                   id="edit-r1-${index}" 
+                   class="input-num" 
+                   value="${team.r1}" 
+                   min="0" 
+                   placeholder="0" />
+          </td>
+          <td>
+            <input type="number" 
+                   id="edit-r2-${index}" 
+                   class="input-num" 
+                   value="${team.r2}" 
+                   min="0" 
+                   placeholder="0" />
+          </td>
+          <td>
+            <input type="number" 
+                   id="edit-r3-${index}" 
+                   class="input-num" 
+                   value="${team.r3}" 
+                   min="0" 
+                   placeholder="0" />
+          </td>
+          <td>
+            <span class="total-score-preview" id="edit-total-${index}">${team.total}</span>
+          </td>
+        `;
+
+        // Echtzeit-Berechnung des Gesamtwerts im Editor beim Tippen
+        const calcTotal = () => {
+          const r1Val = parseInt(tr.querySelector(`#edit-r1-${index}`).value, 10) || 0;
+          const r2Val = parseInt(tr.querySelector(`#edit-r2-${index}`).value, 10) || 0;
+          const r3Val = parseInt(tr.querySelector(`#edit-r3-${index}`).value, 10) || 0;
+          tr.querySelector(`#edit-total-${index}`).textContent = r1Val + r2Val + r3Val;
+        };
+
+        tr.querySelector(`#edit-r1-${index}`).addEventListener('input', calcTotal);
+        tr.querySelector(`#edit-r2-${index}`).addEventListener('input', calcTotal);
+        tr.querySelector(`#edit-r3-${index}`).addEventListener('input', calcTotal);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Speichern & Zurückwechseln
+    function saveEditorChanges() {
+      scoreboardData = getEditorData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(scoreboardData));
+      
+      // Update das Leaderboard
+      renderOverlay();
+
+      // Ansichten tauschen
+      document.getElementById('editMode').style.display = 'none';
+      document.getElementById('viewMode').style.display = 'block';
+    }
+
+    // JSON Herunterladen
+    document.getElementById('btnDownload').addEventListener('click', () => {
+      const currentData = getEditorData();
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "scoreboard.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    });
+
+    // Modus Umschaltung
+    if (isAdminMode) {
+      document.getElementById('btnGoToEdit').addEventListener('click', () => {
+        renderEditor();
+        document.getElementById('viewMode').style.display = 'none';
+        document.getElementById('editMode').style.display = 'flex';
+      });
+    }
+
+    document.getElementById('btnCancel').addEventListener('click', () => {
+      document.getElementById('editMode').style.display = 'none';
+      document.getElementById('viewMode').style.display = 'block';
+    });
+
+    document.getElementById('btnSave').addEventListener('click', saveEditorChanges);
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+      if (confirm('Möchtest du wirklich alle Namen und Punkte löschen? Dies kann nicht rückgängig gemacht werden.')) {
+        scoreboardData = createEmptyData();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(scoreboardData));
+        renderEditor();
+      }
+    });
+
+    // Hilfsfunktionen
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Tastatur-Navigation im Editor
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName !== 'INPUT') return;
+      
+      const parts = e.target.id.split('-');
+      // Format: edit-[feld]-[index]
+      const field = parts[1];
+      const index = parseInt(parts[2], 10);
+
+      if (e.key === 'ArrowDown' && index < NUM_TEAMS - 1) {
+        document.getElementById(`edit-${field}-${index + 1}`).focus();
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp' && index > 0) {
+        document.getElementById(`edit-${field}-${index - 1}`).focus();
+        e.preventDefault();
+      }
+    });
+
+    // Initialisierung beim Laden
+    loadData().then(() => {
+      // Befülle previousScores initial ohne Animation
+      scoreboardData.forEach(t => {
+        previousScores[t.id] = t.total;
+      });
+    });
+
+    // Automatisches Abfragen der JSON-Daten im Hintergrund (nur für Zuschauer-Modus auf Servern)
+    if (!isAdminMode) {
+      setInterval(loadData, 10000); // Alle 10 Sekunden abfragen
+    }
+  </script>
+</body>
+</html>
