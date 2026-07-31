@@ -3,25 +3,25 @@
     "id": 1,
     "name": "Brahmsi",
     "r1": 13,
-    "r2": "",
+    "r2": 12,
     "r3": "",
-    "total": 13
+    "total": 25
   },
   {
     "id": 2,
     "name": "Erdbeerfröschchen",
     "r1": 17,
-    "r2": "",
+    "r2": 10,
     "r3": "",
-    "total": 17
+    "total": 27
   },
   {
     "id": 3,
     "name": "Tiduin",
     "r1": 15,
-    "r2": "",
+    "r2": 17,
     "r3": "",
-    "total": 15
+    "total": 32
   },
   {
     "id": 4,
