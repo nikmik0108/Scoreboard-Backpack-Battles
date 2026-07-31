@@ -1,27 +1,27 @@
 [
   {
     "id": 1,
-    "name": "",
-    "r1": "",
+    "name": "Brahmsi",
+    "r1": 13,
     "r2": "",
     "r3": "",
-    "total": 0
+    "total": 13
   },
   {
     "id": 2,
-    "name": "",
-    "r1": "",
+    "name": "Erdbeerfröschchen",
+    "r1": 17,
     "r2": "",
     "r3": "",
-    "total": 0
+    "total": 17
   },
   {
     "id": 3,
-    "name": "",
-    "r1": "",
+    "name": "Tiduin",
+    "r1": 15,
     "r2": "",
     "r3": "",
-    "total": 0
+    "total": 15
   },
   {
     "id": 4,
