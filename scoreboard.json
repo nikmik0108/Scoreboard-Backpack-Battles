@@ -1,31 +1,31 @@
 [
   {
     "id": 1,
-    "name": "AchLara",
-    "r1": 2,
-    "r2": 2,
-    "r3": 5,
-    "total": 9
+    "name": "Test",
+    "r1": 1,
+    "r2": "",
+    "r3": "",
+    "total": 1
   },
   {
     "id": 2,
-    "name": "Brahmsianer",
-    "r1": 8,
-    "r2": 5,
-    "r3": 6,
-    "total": 19
+    "name": "",
+    "r1": "",
+    "r2": "",
+    "r3": "",
+    "total": 0
   },
   {
     "id": 3,
-    "name": "Bluesky_90",
-    "r1": 12,
-    "r2": 7,
-    "r3": 10,
-    "total": 29
+    "name": "",
+    "r1": "",
+    "r2": "",
+    "r3": "",
+    "total": 0
   },
   {
     "id": 4,
-    "name": "Drawra_",
+    "name": "",
     "r1": "",
     "r2": "",
     "r3": "",
@@ -33,51 +33,51 @@
   },
   {
     "id": 5,
-    "name": "Erdbeerfröschchen",
-    "r1": 12,
-    "r2": 8,
-    "r3": 12,
-    "total": 32
+    "name": "",
+    "r1": "",
+    "r2": "",
+    "r3": "",
+    "total": 0
   },
   {
     "id": 6,
-    "name": "Katzensilber",
-    "r1": 5,
-    "r2": 6,
-    "r3": 2,
-    "total": 13
+    "name": "",
+    "r1": "",
+    "r2": "",
+    "r3": "",
+    "total": 0
   },
   {
     "id": 7,
-    "name": "ProjektAlice",
-    "r1": 4,
-    "r2": 3,
-    "r3": 4,
-    "total": 11
+    "name": "",
+    "r1": "",
+    "r2": "",
+    "r3": "",
+    "total": 0
   },
   {
     "id": 8,
-    "name": "Solemndanger",
-    "r1": 3,
-    "r2": 5,
-    "r3": 3,
-    "total": 11
+    "name": "",
+    "r1": "",
+    "r2": "",
+    "r3": "",
+    "total": 0
   },
   {
     "id": 9,
-    "name": "Tiduin",
-    "r1": 8,
-    "r2": 12,
-    "r3": 7,
-    "total": 27
+    "name": "",
+    "r1": "",
+    "r2": "",
+    "r3": "",
+    "total": 0
   },
   {
     "id": 10,
-    "name": "Nikmik0108",
-    "r1": 6,
-    "r2": 12,
-    "r3": 10,
-    "total": 28
+    "name": "",
+    "r1": "",
+    "r2": "",
+    "r3": "",
+    "total": 0
   },
   {
     "id": 11,
